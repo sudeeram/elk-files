@@ -1,0 +1,46 @@
+Additions to /etc/environment
+
+JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
+LC_CTYPE=en_US.UTF-8
+LC_ALL=en_US.UTF-8
+
+====================
+Edit /etc/ssl/openssl.cnf
+
+[ v3_ca ]
+subjectAltName = IP: 192.168.160.16
+
+Then from /etc/pki/tlk
+
+sudo openssl req -extensions v3_ca -config /etc/ssl/openssl.cnf -x509 -days 3650 -batch -nodes -newkey rsa:4096 -keyout private/ELK-Stack.key -out certs/ELK-Stack.crt
+
+===================
+/etc/nginx/sites-available/default
+
+server {
+   listen 80 default_server;
+   server_name 192.168.160.16;
+   return 301 https://$server_name$request_uri;
+}
+
+server {
+   listen 443 default ssl;
+
+   ssl_certificate /etc/pki/tls/certs/ELK-Stack.cr;
+   ssl_certificate_key /etc/pki/tls/private/ELK-Stack.key;
+   ssl_session_cache shared:SSL:10m;
+
+   auth_basic "Restricted Access";
+   auth_basic_user_file /etc/nginx/htpasswd.users;
+
+   location / {
+        proxy_pass http://localhost:5601;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+   }
+}
+
+
